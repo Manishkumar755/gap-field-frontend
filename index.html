@@ -233,6 +233,13 @@ async function callClaude(prompt){
   });
   if(!response.ok) throw new Error("API request failed (" + response.status + ")");
   const data = await response.json();
+  if(data.error){
+    const msg = (data.error && (data.error.message || JSON.stringify(data.error))) || "Unknown backend error";
+    throw new Error("Backend error: " + msg);
+  }
+  if(!data.text){
+    throw new Error("Backend returned no text. Raw response: " + JSON.stringify(data));
+  }
   return data.text;
 }
 
