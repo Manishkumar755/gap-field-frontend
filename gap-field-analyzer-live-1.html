@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gap Field — Growth Gap Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper: #F0EFE6;
+    --line: #C9CBB8;
+    --ink: #1D2A1F;
+    --ink-soft: #5C6858;
+    --forest: #2F4A34;
+    --amber: #C77B2E;
+    --amber-soft: #E8C9A0;
+    --panel: #E4E4D5;
+    --good: #3E6B4A;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0/100% 22px,
+      var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+  }
+
+  .wrap{ max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header{
+    border-bottom: 2px solid var(--forest);
+    padding-bottom: 14px;
+    margin-bottom: 26px;
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  header h1{
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--forest);
+  }
+  header .sub{ font-size: 11.5px; color: var(--ink-soft); }
+
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 22px; }
+  @media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel{ background: var(--panel); border: 1px solid var(--line); padding: 18px 20px; }
+  .panel h2{
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    margin: 0 0 4px;
+    color: var(--forest);
+  }
+  .panel .hint{ font-size: 11px; color: var(--ink-soft); margin-bottom: 14px; }
+
+  label{ display:block; font-size: 11px; color: var(--ink-soft); margin: 12px 0 4px; }
+  label:first-of-type{ margin-top: 0; }
+
+  input, textarea{
+    width: 100%;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  textarea{ resize: vertical; min-height: 52px; }
+  input:focus, textarea:focus{ outline: 2px solid var(--amber); outline-offset: 1px; }
+
+  .bench-item{ border-top: 1px dashed var(--line); padding-top: 12px; margin-top: 12px; }
+  .bench-item:first-of-type{ border-top: none; padding-top: 0; margin-top: 0; }
+  .bench-label{ font-size: 10px; color: var(--amber); letter-spacing: 0.5px; margin-bottom: 6px; }
+
+  .btn{
+    width: 100%;
+    margin-top: 22px;
+    padding: 13px;
+    background: var(--forest);
+    color: var(--paper);
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+  }
+  .btn:disabled{ background: var(--ink-soft); }
+  .btn:not(:disabled):hover{ background: #24391F; }
+
+  .error{ margin-top: 10px; font-size: 12px; color: #A5391F; }
+
+  .stage{ min-height: 160px; }
+  .empty{
+    border: 1px dashed var(--line);
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+  }
+  .loading{ text-align:center; padding: 40px 0; color: var(--ink-soft); font-size: 12.5px; }
+
+  .score-band{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--amber);
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .score-band .big{
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--forest);
+  }
+  .score-band .note{ font-size: 11.5px; color: var(--ink-soft); max-width: 560px; }
+
+  .gap-table{ width: 100%; border-collapse: collapse; margin-bottom: 26px; font-size: 12.5px; }
+  .gap-table th{
+    text-align:left; font-size: 10.5px; color: var(--ink-soft);
+    border-bottom: 2px solid var(--forest); padding: 8px 10px;
+  }
+  .gap-table td{ padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .sev{ font-weight: 700; }
+  .sev-high{ color: #A5391F; }
+  .sev-med{ color: var(--amber); }
+  .sev-low{ color: var(--good); }
+
+  .plan-title{
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    color: var(--forest);
+    margin: 0 0 12px;
+  }
+  .test-item{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display:flex;
+    gap: 12px;
+  }
+  .test-num{
+    font-family: 'Fraunces', serif;
+    color: var(--amber);
+    font-weight: 700;
+    flex-shrink:0;
+  }
+  .test-text{ font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gap Field</h1>
+    <div class="sub">growth gap analyzer — prototype</div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Client — current state</h2>
+      <div class="hint">What they're doing now, in their own account.</div>
+
+      <label>Niche</label>
+      <input id="niche" type="text" placeholder="e.g. fitness coaching for men 25-35" />
+
+      <label>Current average views</label>
+      <input id="currentViews" type="text" placeholder="e.g. ~1,000 per reel" />
+
+      <label>Describe a typical recent reel (hook, length, pacing, caption style)</label>
+      <textarea id="clientReel" placeholder="e.g. 30 sec, talking to camera, no text overlay, first line is 'hey guys so today...', caption is generic"></textarea>
+
+      <label>Posting frequency</label>
+      <input id="frequency" type="text" placeholder="e.g. 3x per week" />
+    </div>
+
+    <div class="panel">
+      <h2>Niche benchmark — top performers</h2>
+      <div class="hint">2-3 reels from accounts in the same niche doing 500K+ views. Describe what they do differently.</div>
+
+      <div class="bench-item">
+        <div class="bench-label">BENCHMARK 1</div>
+        <textarea id="bench1" placeholder="e.g. Text overlay hook in frame 1: 'You've been lied to about X', cuts every 2 sec, 20 sec total"></textarea>
+      </div>
+      <div class="bench-item">
+        <div class="bench-label">BENCHMARK 2</div>
+        <textarea id="bench2" placeholder="Describe another top-performing reel's structure"></textarea>
+      </div>
+      <div class="bench-item">
+        <div class="bench-label">BENCHMARK 3 (optional)</div>
+        <textarea id="bench3" placeholder="Optional third example"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" id="analyze">RUN GAP ANALYSIS</button>
+  <div class="error" id="error" style="display:none;"></div>
+
+  <div class="stage" id="stage" style="margin-top:26px;">
+    <div class="empty">Fill in client + benchmark details above, then run the analysis.<br>Output: structural gaps + a batch testing plan.</div>
+  </div>
+</div>
+
+<script>
+const analyzeBtn = document.getElementById('analyze');
+const stage = document.getElementById('stage');
+const errorBox = document.getElementById('error');
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// STEP: Replace this with YOUR Railway backend URL once deployed (Step 3 of the guide).
+// Example: "https://gap-field-backend-production.up.railway.app/analyze"
+const BACKEND_URL = "https://gap-field-backend-production.up.railway.app/analyze";
+
+async function callClaude(prompt){
+  const response = await fetch(BACKEND_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: prompt })
+  });
+  if(!response.ok) throw new Error("API request failed (" + response.status + ")");
+  const data = await response.json();
+  return data.text;
+}
+
+function buildPrompt(v){
+  return `You are a growth strategist for a social media agency. A client's account is underperforming compared to niche leaders. Do a structural gap analysis — NOT a virality prediction, NOT a guarantee. Be specific and grounded only in what's described below; do not invent metrics.
+
+NICHE: ${v.niche}
+CLIENT CURRENT AVG VIEWS: ${v.currentViews}
+CLIENT TYPICAL REEL: ${v.clientReel}
+CLIENT POSTING FREQUENCY: ${v.frequency}
+
+NICHE BENCHMARK EXAMPLES (accounts already at 500K+ views in this niche):
+1. ${v.bench1}
+2. ${v.bench2}
+${v.bench3 ? "3. " + v.bench3 : ""}
+
+Return ONLY valid JSON, no markdown fences, matching exactly this shape:
+{
+  "readiness_note": "one sentence framing this as a structural gap score, not a virality guarantee",
+  "gaps": [
+    {"feature": "Hook", "client": "...", "benchmark": "...", "severity": "high|medium|low", "why_it_matters": "..."}
+  ],
+  "test_batch": [
+    "specific test change 1 to try across the next batch of reels",
+    "specific test change 2",
+    "..."
+  ]
+}
+Include 4-6 gaps covering hook, pacing, caption, structure, or format where the description supports it. Include 6-8 test_batch items — concrete, actionable changes for the client's NEXT batch of reels, not vague advice.`;
+}
+
+function severityClass(sev){
+  if(sev === 'high') return 'sev-high';
+  if(sev === 'medium') return 'sev-med';
+  return 'sev-low';
+}
+
+function renderOutput(parsed){
+  let html = `<div class="score-band">
+    <div class="big">Gap Report</div>
+    <div class="note">${esc(parsed.readiness_note)}</div>
+  </div>`;
+
+  html += `<table class="gap-table"><thead><tr>
+    <th>Feature</th><th>Client (now)</th><th>Benchmark leaders</th><th>Severity</th><th>Why it matters</th>
+  </tr></thead><tbody>`;
+  parsed.gaps.forEach(g => {
+    html += `<tr>
+      <td><strong>${esc(g.feature)}</strong></td>
+      <td>${esc(g.client)}</td>
+      <td>${esc(g.benchmark)}</td>
+      <td class="sev ${severityClass(g.severity)}">${esc(g.severity).toUpperCase()}</td>
+      <td>${esc(g.why_it_matters)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+
+  html += `<div class="plan-title">Next Batch — Test Plan (8-10 reels)</div>`;
+  parsed.test_batch.forEach((t, i) => {
+    html += `<div class="test-item"><div class="test-num">${i+1}</div><div class="test-text">${esc(t)}</div></div>`;
+  });
+
+  stage.innerHTML = html;
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  errorBox.style.display = 'none';
+  const v = {
+    niche: document.getElementById('niche').value.trim(),
+    currentViews: document.getElementById('currentViews').value.trim(),
+    clientReel: document.getElementById('clientReel').value.trim(),
+    frequency: document.getElementById('frequency').value.trim(),
+    bench1: document.getElementById('bench1').value.trim(),
+    bench2: document.getElementById('bench2').value.trim(),
+    bench3: document.getElementById('bench3').value.trim(),
+  };
+
+  if(!v.niche || !v.clientReel || !v.bench1){
+    errorBox.textContent = 'Fill in at least niche, client reel description, and Benchmark 1.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = 'ANALYZING…';
+  stage.innerHTML = '<div class="loading">comparing client reel against niche benchmarks…</div>';
+
+  try{
+    const raw = await callClaude(buildPrompt(v));
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    renderOutput(parsed);
+  }catch(err){
+    stage.innerHTML = '<div class="empty">Something went wrong generating the analysis.</div>';
+    errorBox.textContent = err.message;
+    errorBox.style.display = 'block';
+  }finally{
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'RUN GAP ANALYSIS';
+  }
+});
+</script>
+</body>
+</html>
